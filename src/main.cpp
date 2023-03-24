@@ -42,31 +42,6 @@ float HoyACProduction[INVERTER_COUNT];
 
 uint32_t lastTime;
 
-/*
-# grid power
-#    ...
-#     |
-#     | -------> jump limit to HOY_MAX_WATT if (JUMP_TO_MAX_LIMIT_ON_GRID_USAGE = TRUE), else: increasing limit <-------
-#     |
-#   [0W]      [POWERMETER_MAX_POINT]
-#     |
-#     | -------> increasing limit <-------
-#     |
-#  [-50W]     [POWERMETER_TARGET_POINT + POWERMETER_TOLERANCE]
-#     |
-#     | -------> no limit change between -100W ... -50W <-------
-#     |
-#  [-75W]     [POWERMETER_TARGET_POINT]
-#     |
-#     | -------> no limit change between -100W ... -50W <-------
-#     |
-#  [-100W]    [POWERMETER_TARGET_POINT - POWERMETER_TOLERANCE]
-#     |
-#     | -------> decreasing limit <-------
-#     |
-#    ...
-*/
-
 int GetPowermeterWattsTasmota()
 {
   /*
