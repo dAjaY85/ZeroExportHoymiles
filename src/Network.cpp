@@ -1,144 +1,162 @@
 #include "Network.h"
 
-void NetworkClass::init()
+void NetworkClass::connectToWiFi()
 {
-    WiFiConnect();
-    ArduinoOTA.setHostname("OTA_ZeroExport");
-    //  ArduinoOTA.setPassword("OTA_ZeroExport");
-    ArduinoOTA.begin();
+    Serial.println("Connecting to Wi-Fi...");
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+}
 
-    mqttClient = new PubSubClient;
-    mqttClient->setServer(MQTT_IP, 1883); // Hier euer MQTT Broker
-    mqttClient->setCallback(mqttCallback);
-
-    if (mqttClient->connect("ZeroExport-Client", NULL, NULL))
+void NetworkClass::connectToMqtt()
+{
+    Serial.println("Connecting to MQTT...");
+    if (!mqttClient->connect())
     {
-
-        Serial.println("Connected to MQTT Broker");
-        mqttClient->publish("ZeroExport-Client", "Connected");
+        Network.reconnectMqtt = true;
+        Network.lastReconnect = millis();
+        Serial.println("Connecting failed.");
     }
     else
     {
-        Serial.print("MQTT Broker connection failed");
-        Serial.print(mqttClient->state());
-        delay(200);
+        Network.reconnectMqtt = false;
     }
-
-    // auf diese Topics wird gehört
-    mqttClient->subscribe(MQTT_TOPIC);
 }
 
-// ------------------------
-// ###### Loop ######
-// ------------------------
+void NetworkClass::WiFiEvent(WiFiEvent_t event)
+{
+    Serial.printf("[WiFi-event] event: %d\n", event);
+    switch (event)
+    {
+    case SYSTEM_EVENT_STA_GOT_IP:
+        Serial.println("WiFi connected");
+        Serial.println("IP address: ");
+        Serial.println(WiFi.localIP());
+        connectToMqtt();
+        break;
+    case SYSTEM_EVENT_STA_DISCONNECTED:
+        Serial.println("WiFi lost connection");
+        break;
+    default:
+        break;
+    }
+}
+
+void NetworkClass::onMqttConnect(bool sessionPresent)
+{
+    Serial.println("Connected to MQTT.");
+    Serial.print("Session present: ");
+    Serial.println(sessionPresent);
+    uint16_t packetIdSub = mqttClient->subscribe(MQTT_TOPIC, 0);
+    Serial.print("Subscribing at QoS 2, packetId: ");
+    Serial.println(packetIdSub);
+    /*
+    mqttClient->publish("foo/bar", 0, true, "test 1");
+    Serial.println("Publishing at QoS 0");
+    uint16_t packetIdPub1 = mqttClient->publish("foo/bar", 1, true, "test 2");
+    Serial.print("Publishing at QoS 1, packetId: ");
+    Serial.println(packetIdPub1);
+    uint16_t packetIdPub2 = mqttClient->publish("foo/bar", 2, true, "test 3");
+    Serial.print("Publishing at QoS 2, packetId: ");
+    Serial.println(packetIdPub2);
+    */
+}
+
+void NetworkClass::onMqttDisconnect(espMqttClientTypes::DisconnectReason reason)
+{
+    Serial.printf("Disconnected from MQTT: %u.\n", static_cast<uint8_t>(reason));
+
+    if (WiFi.isConnected())
+    {
+        Network.reconnectMqtt = true;
+        Network.lastReconnect = millis();
+    }
+}
+
+void NetworkClass::onMqttSubscribe(uint16_t packetId, const espMqttClientTypes::SubscribeReturncode *codes, size_t len)
+{
+    Serial.println("Subscribe acknowledged.");
+    Serial.print("  packetId: ");
+    Serial.println(packetId);
+    for (size_t i = 0; i < len; ++i)
+    {
+        Serial.print("  qos: ");
+        Serial.println(static_cast<uint8_t>(codes[i]));
+    }
+}
+
+void NetworkClass::onMqttUnsubscribe(uint16_t packetId)
+{
+    Serial.println("Unsubscribe acknowledged.");
+    Serial.print("  packetId: ");
+    Serial.println(packetId);
+}
+
+void NetworkClass::onMqttMessage(const espMqttClientTypes::MessageProperties &properties, const char *topic, const uint8_t *payload, size_t len, size_t index, size_t total)
+{
+    (void)properties;
+    (void)topic;
+    (void)index;
+    (void)total;
+
+    String mqttValue = "";
+    for (int i = 0; i < len; i++)
+    {
+        mqttValue += (char)payload[i];
+    }
+    MQTT_PowerMeter = mqttValue.toInt();
+}
+
+void NetworkClass::onMqttPublish(uint16_t packetId)
+{
+    Serial.println("Publish acknowledged.");
+    Serial.print("  packetId: ");
+    Serial.println(packetId);
+}
+
+void NetworkClass::init()
+{
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    using std::placeholders::_3;
+    using std::placeholders::_4;
+    using std::placeholders::_5;
+    using std::placeholders::_6;
+
+    createMqttClientObject();
+
+    WiFi.setAutoConnect(false);
+    WiFi.setAutoReconnect(true);
+    WiFi.onEvent(std::bind(&NetworkClass::WiFiEvent, this, _1));
+
+    static_cast<espMqttClientAsync *>(mqttClient)->setServer(MQTT_IP, MQTT_PORT);
+    static_cast<espMqttClientAsync *>(mqttClient)->setCredentials(MQTT_USER, MQTT_PASS);
+
+    static_cast<espMqttClientAsync *>(mqttClient)->onConnect(std::bind(&NetworkClass::onMqttConnect, this, _1));
+    static_cast<espMqttClientAsync *>(mqttClient)->onDisconnect(std::bind(&NetworkClass::onMqttDisconnect, this, _1));
+
+    static_cast<espMqttClientAsync *>(mqttClient)->onSubscribe(std::bind(&NetworkClass::onMqttSubscribe, this, _1, _2, _3));
+    static_cast<espMqttClientAsync *>(mqttClient)->onUnsubscribe(std::bind(&NetworkClass::onMqttUnsubscribe, this, _1));
+
+    static_cast<espMqttClientAsync *>(mqttClient)->onMessage(std::bind(&NetworkClass::onMqttMessage, this, _1, _2, _3, _4, _5, _6));
+    static_cast<espMqttClientAsync *>(mqttClient)->onPublish(std::bind(&NetworkClass::onMqttPublish, this, _1));
+
+    connectToWiFi();
+}
+
+void NetworkClass::createMqttClientObject()
+{
+    if (mqttClient != nullptr)
+        delete mqttClient;
+
+    mqttClient = static_cast<espMqttClientAsync *>(new espMqttClientAsync);
+}
 
 void NetworkClass::loop()
 {
-    ArduinoOTA.handle();
-    delay(0); // Resetet den WD Timer
-    if (!wlanclient.connected())
+    static uint32_t currentMillis = millis();
+
+    if (reconnectMqtt && currentMillis - lastReconnect > 5000)
     {
-        WiFiConnect();
-    }
-
-    if (!mqttClient->connected())
-    {
-        mqttClient->setCallback(mqttCallback);
-        Serial.println("Try Mqtt Connection");
-        MqttReconnect = true;
-        mqttClient->connect("ZeroExport-Client", NULL, NULL);
-    }
-    else
-    {
-        mqttClient->loop();
-        if (MqttReconnect)
-        {
-            MqttReconnect = false;
-            T_MqttReconnected = millis();
-            MqttSendReconnect = true;
-        }
-    }
-
-    if ((millis() - T_MqttReconnected) > 3000 && MqttSendReconnect)
-    {
-        MqttSendReconnect = false;
-        mqttClient->publish("ZeroExport-Client", "Connected");
-    }
-
-    StartupDone = true;
-}
-
-// ------------------------
-// ###### Mqtt Read ######
-// ------------------------
-
-void NetworkClass::mqttCallback(char *topic, byte *payload, unsigned int length)
-{
-    String str_topic = String(topic); // Char to String
-    if (length > 19)
-    {
-        Serial.println("Message to long !!!!");
-        length = 19;
-    }
-
-    Serial.println("Message arrived on Topic:");
-    Serial.print(topic);
-    Serial.print(" ");
-
-    char message[20] = {0x00};
-
-    for (int i = 0; i < length; i++)
-        message[i] = (char)payload[i];
-
-    message[length] = 0x00; // NUL Terminierung
-
-    // Payload in Zahl wandeln
-    float Value;
-    Value = atof(message);
-    Serial.println(Value, 2);
-
-    // Werte Zuordnen
-    if (str_topic.equals(MQTT_TOPIC))
-    {
-        Network.MQTT_PowerMeter = Value;
-    }
-}
-
-void NetworkClass::WiFiConnect()
-{
-    WiFi.hostname(APP_HOSTNAME);
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-    while (WiFi.status() != WL_CONNECTED)
-    { // so lange hier verweilen bis neu verbunden
-        WifiNewConnected = true;
-        delay(250);
-        Serial.print(".");
-        WifiFault++;
-        if (WifiFault > 30)
-        {
-            WifiReconnect++;
-            if (WifiReconnect >= 20)
-            {
-                ESP.restart();
-            }
-            WifiFault = 0;
-            Serial.println("\r\nStartWifiAgain");
-            WiFi.disconnect();
-            delay(500);
-            WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-        }
-        delay(250);
-    }
-    if (WifiNewConnected)
-    {
-        WifiNewConnected = false;
-        Serial.println("\r\nOnline");
-        Serial.println("\nVerbunden mit: " + WiFi.SSID());
-        Serial.println("Esp IP: " + WiFi.localIP().toString());
-        Serial.println("Esp GW: " + WiFi.gatewayIP().toString());
-        WiFi.persistent(true);
+        connectToMqtt();
     }
 }
 

@@ -9,8 +9,7 @@
 #define WIFI_PASSWORD ""
 
 // MQTT
-#define MQTT_IP "192.168.178.20"
-#define MQTT_SERVER "ZeroExport-Client"
+#define MQTT_IP IPAddress(192, 168, 178, 20)
 #define MQTT_PORT 1883
 #define MQTT_USER "MQTT"
 #define MQTT_PASS ""

@@ -2,27 +2,31 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <espMqttClientAsync.h>
 #include <ArduinoOTA.h>
-#include <PubSubClient.h>
 #include "defaults.h"
 
 class NetworkClass
 {
 private:
-    void WiFiConnect();
-    static void mqttCallback(char *topic, byte *payload, unsigned int length);
+    void connectToWiFi();
+    void connectToMqtt();
 
-    WiFiClient wlanclient;
-    PubSubClient *mqttClient;
+    void WiFiEvent(WiFiEvent_t event);
 
-    int WifiFault;
-    bool WifiNewConnected;
-    int WifiReconnect = 0;
+    void onMqttConnect(bool sessionPresent);
+    void onMqttDisconnect(espMqttClientTypes::DisconnectReason reason);
 
-    bool StartupDone;
-    bool MqttReconnect;
-    bool MqttSendReconnect;
-    uint16_t T_MqttReconnected;
+    void onMqttSubscribe(uint16_t packetId, const espMqttClientTypes::SubscribeReturncode *codes, size_t len);
+    void onMqttUnsubscribe(uint16_t packetId);
+    void onMqttMessage(const espMqttClientTypes::MessageProperties &properties, const char *topic, const uint8_t *payload, size_t len, size_t index, size_t total);
+    void onMqttPublish(uint16_t packetId);
+
+    void createMqttClientObject();
+
+    espMqttClientAsync *mqttClient = nullptr;
+    bool reconnectMqtt = false;
+    uint32_t lastReconnect = 0;
 
 public:
     void init();

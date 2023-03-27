@@ -215,7 +215,7 @@ void ZeroExportClass::GetHoymilesStatus()
         if (http.GET() == 200)
         {
             // Parsing
-            DynamicJsonDocument doc(8182);
+            DynamicJsonDocument doc(DTU_INVERTER_COUNT * 2048);
             DeserializationError error = deserializeJson(doc, http.getString());
             if (error)
             {
@@ -247,7 +247,7 @@ void ZeroExportClass::GetHoymilesStatus()
         if (http.GET() == 200)
         {
             // Parsing
-            DynamicJsonDocument doc(8182);
+            DynamicJsonDocument doc(DTU_INVERTER_COUNT * 2048);
             DeserializationError error = deserializeJson(doc, http.getString());
             if (error)
             {
@@ -262,7 +262,18 @@ void ZeroExportClass::GetHoymilesStatus()
                 HoyInverterSerial[i] = inverters[i]["serial"];
                 HoyAvailable[i] = inverters[i]["reachable"];
                 HoyLimitAbsolute[i] = inverters[i]["limit_absolute"];
-                HoyACProduction[i] = inverters[i]["AC"][0]["Power"]["v"];
+                HoyLimitRelative[i] = inverters[i]["limit_relative"];
+                (HoyLimitAbsolute[i] * DTU_MIN_POWER_PERCENT / 100);
+
+                for (JsonPair inverters_AC_0_item : inverters[i]["AC"]["0"].as<JsonObject>())
+                {
+                    const char *inverters_0_AC_0_item_key = inverters_AC_0_item.key().c_str(); // "Power", "Voltage", ...
+
+                    if (inverters_0_AC_0_item_key == "Power")
+                    {
+                        HoyACProduction[i] = inverters_AC_0_item.value()["v"];
+                    }
+                }
 
                 Serial.print("Serial: ");
                 Serial.println(HoyInverterSerial[i]);
