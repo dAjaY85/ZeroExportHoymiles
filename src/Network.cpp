@@ -30,10 +30,13 @@ void NetworkClass::WiFiEvent(WiFiEvent_t event)
         Serial.println("WiFi connected");
         Serial.println("IP address: ");
         Serial.println(WiFi.localIP());
+        isConnected = true;
+        localIP = WiFi.localIP();
         connectToMqtt();
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
         Serial.println("WiFi lost connection");
+        isConnected = false;
         break;
     default:
         break;
@@ -43,11 +46,12 @@ void NetworkClass::WiFiEvent(WiFiEvent_t event)
 void NetworkClass::onMqttConnect(bool sessionPresent)
 {
     Serial.println("Connected to MQTT.");
-    Serial.print("Session present: ");
-    Serial.println(sessionPresent);
-    uint16_t packetIdSub = mqttClient->subscribe(MQTT_TOPIC, 0);
-    Serial.print("Subscribing at QoS 2, packetId: ");
-    Serial.println(packetIdSub);
+    // Serial.print("Session present: ");
+    // Serial.println(sessionPresent);
+    uint16_t packetIdSub = mqttClient->subscribe(POWERMETER_MQTT_TOPIC, 0);
+    // Serial.print("Subscribing at QoS 2, packetId: ");
+    // Serial.println(packetIdSub);
+
     /*
     mqttClient->publish("foo/bar", 0, true, "test 1");
     Serial.println("Publishing at QoS 0");
@@ -112,6 +116,14 @@ void NetworkClass::onMqttPublish(uint16_t packetId)
     Serial.println(packetId);
 }
 
+void NetworkClass::createMqttClientObject()
+{
+    if (mqttClient != nullptr)
+        delete mqttClient;
+
+    mqttClient = static_cast<espMqttClientAsync *>(new espMqttClientAsync);
+}
+
 void NetworkClass::init()
 {
     using std::placeholders::_1;
@@ -142,19 +154,18 @@ void NetworkClass::init()
     connectToWiFi();
 }
 
-void NetworkClass::createMqttClientObject()
-{
-    if (mqttClient != nullptr)
-        delete mqttClient;
-
-    mqttClient = static_cast<espMqttClientAsync *>(new espMqttClientAsync);
-}
-
 void NetworkClass::loop()
 {
-    static uint32_t currentMillis = millis();
+    if ((millis() - lastTime) > 1000)
+    {
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            connectToWiFi();
+        }
+        lastTime = millis();
+    }
 
-    if (reconnectMqtt && currentMillis - lastReconnect > 5000)
+    if (reconnectMqtt && millis() - lastReconnect > 5000)
     {
         connectToMqtt();
     }

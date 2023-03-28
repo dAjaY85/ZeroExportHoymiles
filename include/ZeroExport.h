@@ -4,8 +4,8 @@
 #include "Arduino.h"
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
-#include <PubSubClient.h>
 #include "PowerMeter.h"
+#include "Hoymiles.h"
 
 class ZeroExportClass
 {
@@ -16,8 +16,6 @@ private:
     const uint16_t LOOP_INTERVAL_IN_SECONDS = 20000;
     // delay time after sending limit to Hoymiles Inverter
     const uint16_t SET_LIMIT_DELAY_IN_SECONDS = 5000;
-    // delay time after sending limit to Hoymiles Inverter when using more than one Inverter
-    const uint16_t SET_LIMIT_DELAY_IN_SECONDS_MULTIPLE_INVERTER = 2000;
     // polling interval for powermeter(must be < LOOP_INTERVAL_IN_SECONDS)
     uint16_t POLL_INTERVAL_IN_SECONDS = 1000;
     // when powermeter> 0 : (True) : always jump to maxLimit of inverter; (False) : increase limit based on previous limit
@@ -36,38 +34,19 @@ private:
 
     int16_t SLOW_APPROX_LIMIT;
 
-    int CurrentLimit[DTU_INVERTER_COUNT];
-    int HoyMaxPower[DTU_INVERTER_COUNT];
-    int HoyMinPower[DTU_INVERTER_COUNT];
-
-    const char *HoyLimitSetStatus[DTU_INVERTER_COUNT];
-    const char *HoyInverterSerial[DTU_INVERTER_COUNT];
-    bool HoyAvailable[DTU_INVERTER_COUNT];
-    float HoyLimitAbsolute[DTU_INVERTER_COUNT];
-    float HoyLimitRelative[DTU_INVERTER_COUNT];
-    float HoyACProduction[DTU_INVERTER_COUNT];
-
-    const char *Use_DTU;
     uint32_t newLimitSetpoint;
     uint32_t lastTime;
 
-    void GetHoymilesStatus();
-    void SetLimitDTU(int pLimit);
-    void getLimitDTU();
-    int GetMaxWattFromAllInverters();
-    int GetMinWattFromAllInverters();
-    int ApplyLimitsToSetpoint(int pSetpoint);
-    int ApplyLimitsToSetpointInverter(int pInverter, int pSetpoint);
-    void AverageFilter(bool NewValueAvailable, float NewValue, uint8_t Positions);
     int CutLimitToProduction(int pSetpoint);
-    float GetHoymilesActualPower();
-    bool GetHoymilesAvailable();
+    int ApplyLimitsToSetpoint(int pSetpoint);
 
 public:
     ZeroExportClass();
     ~ZeroExportClass();
 
-    void init(const char *Sel_DTU);
+    int ApplyLimitsToSetpointInverter(int pInverter, int pSetpoint);
+
+    void init();
     void loop();
 };
 

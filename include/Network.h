@@ -27,10 +27,15 @@ private:
     espMqttClientAsync *mqttClient = nullptr;
     bool reconnectMqtt = false;
     uint32_t lastReconnect = 0;
+    uint32_t lastTime = 0;
 
 public:
     void init();
     void loop();
+
+    bool isConnected = false;
+    IPAddress localIP;
+
 
     int MQTT_PowerMeter;
 };
