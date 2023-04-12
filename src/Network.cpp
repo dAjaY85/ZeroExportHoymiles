@@ -1,9 +1,35 @@
 #include "Network.h"
 
-void NetworkClass::connectToWiFi()
+void NetworkClass::init()
 {
-    Serial.println("Connecting to Wi-Fi...");
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    using std::placeholders::_3;
+    using std::placeholders::_4;
+    using std::placeholders::_5;
+    using std::placeholders::_6;
+
+    createMqttClientObject();
+
+    static_cast<espMqttClientAsync *>(mqttClient)->setServer(Configuration.MQTT_IP, MQTT_PORT);
+    static_cast<espMqttClientAsync *>(mqttClient)->setCredentials(Configuration.MQTT_USER, Configuration.MQTT_PASS);
+
+    static_cast<espMqttClientAsync *>(mqttClient)->onConnect(std::bind(&NetworkClass::onMqttConnect, this, _1));
+    static_cast<espMqttClientAsync *>(mqttClient)->onDisconnect(std::bind(&NetworkClass::onMqttDisconnect, this, _1));
+
+    static_cast<espMqttClientAsync *>(mqttClient)->onSubscribe(std::bind(&NetworkClass::onMqttSubscribe, this, _1, _2, _3));
+    static_cast<espMqttClientAsync *>(mqttClient)->onUnsubscribe(std::bind(&NetworkClass::onMqttUnsubscribe, this, _1));
+
+    static_cast<espMqttClientAsync *>(mqttClient)->onMessage(std::bind(&NetworkClass::onMqttMessage, this, _1, _2, _3, _4, _5, _6));
+    static_cast<espMqttClientAsync *>(mqttClient)->onPublish(std::bind(&NetworkClass::onMqttPublish, this, _1));
+}
+
+void NetworkClass::loop()
+{
+    if (reconnectMqtt && millis() - lastReconnect > 5000)
+    {
+        connectToMqtt();
+    }
 }
 
 void NetworkClass::connectToMqtt()
@@ -21,34 +47,12 @@ void NetworkClass::connectToMqtt()
     }
 }
 
-void NetworkClass::WiFiEvent(WiFiEvent_t event)
-{
-    Serial.printf("[WiFi-event] event: %d\n", event);
-    switch (event)
-    {
-    case SYSTEM_EVENT_STA_GOT_IP:
-        Serial.println("WiFi connected");
-        Serial.println("IP address: ");
-        Serial.println(WiFi.localIP());
-        isConnected = true;
-        localIP = WiFi.localIP();
-        connectToMqtt();
-        break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-        Serial.println("WiFi lost connection");
-        isConnected = false;
-        break;
-    default:
-        break;
-    }
-}
-
 void NetworkClass::onMqttConnect(bool sessionPresent)
 {
     Serial.println("Connected to MQTT.");
     // Serial.print("Session present: ");
     // Serial.println(sessionPresent);
-    uint16_t packetIdSub = mqttClient->subscribe(POWERMETER_MQTT_TOPIC, 0);
+    uint16_t packetIdSub = mqttClient->subscribe(Configuration.POWERMETER_MQTT_TOPIC, 0);
     // Serial.print("Subscribing at QoS 2, packetId: ");
     // Serial.println(packetIdSub);
 
@@ -122,53 +126,6 @@ void NetworkClass::createMqttClientObject()
         delete mqttClient;
 
     mqttClient = static_cast<espMqttClientAsync *>(new espMqttClientAsync);
-}
-
-void NetworkClass::init()
-{
-    using std::placeholders::_1;
-    using std::placeholders::_2;
-    using std::placeholders::_3;
-    using std::placeholders::_4;
-    using std::placeholders::_5;
-    using std::placeholders::_6;
-
-    createMqttClientObject();
-
-    WiFi.setAutoConnect(false);
-    WiFi.setAutoReconnect(true);
-    WiFi.onEvent(std::bind(&NetworkClass::WiFiEvent, this, _1));
-
-    static_cast<espMqttClientAsync *>(mqttClient)->setServer(MQTT_IP, MQTT_PORT);
-    static_cast<espMqttClientAsync *>(mqttClient)->setCredentials(MQTT_USER, MQTT_PASS);
-
-    static_cast<espMqttClientAsync *>(mqttClient)->onConnect(std::bind(&NetworkClass::onMqttConnect, this, _1));
-    static_cast<espMqttClientAsync *>(mqttClient)->onDisconnect(std::bind(&NetworkClass::onMqttDisconnect, this, _1));
-
-    static_cast<espMqttClientAsync *>(mqttClient)->onSubscribe(std::bind(&NetworkClass::onMqttSubscribe, this, _1, _2, _3));
-    static_cast<espMqttClientAsync *>(mqttClient)->onUnsubscribe(std::bind(&NetworkClass::onMqttUnsubscribe, this, _1));
-
-    static_cast<espMqttClientAsync *>(mqttClient)->onMessage(std::bind(&NetworkClass::onMqttMessage, this, _1, _2, _3, _4, _5, _6));
-    static_cast<espMqttClientAsync *>(mqttClient)->onPublish(std::bind(&NetworkClass::onMqttPublish, this, _1));
-
-    connectToWiFi();
-}
-
-void NetworkClass::loop()
-{
-    if ((millis() - lastTime) > 1000)
-    {
-        if (WiFi.status() != WL_CONNECTED)
-        {
-            connectToWiFi();
-        }
-        lastTime = millis();
-    }
-
-    if (reconnectMqtt && millis() - lastReconnect > 5000)
-    {
-        connectToMqtt();
-    }
 }
 
 NetworkClass Network;

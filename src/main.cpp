@@ -7,6 +7,7 @@
 #include "Hoymiles.h"
 #include "Network.h"
 #include "PowerMeter.h"
+#include "WebServer.h"
 
 void setup()
 {
@@ -17,8 +18,13 @@ void setup()
   MessageOutput.println();
   MessageOutput.println(F("Starting ZeroExport"));
 
-  // Initialize WiFi & MQTT
-  MessageOutput.print(F("Initialize Network... "));
+  // Initialize WiFi & Server
+  MessageOutput.print(F("Initialize WiFi & Server... "));
+  WebServer.init();
+  MessageOutput.println(F("done"));
+
+  // Initialize MQTT
+  MessageOutput.print(F("Initialize MQTT... "));
   Network.init();
   MessageOutput.println(F("done"));
 
@@ -27,12 +33,17 @@ void setup()
   PowerMeter.init("MQTT"); // MQTT / Shelly_EM3 / Tasmota
   MessageOutput.println(F("done"));
 
+  // Initialize WebApi
+  MessageOutput.print(F("Initialize WebApi... "));
+  // AsyncWebApi.init();
+  MessageOutput.println(F("done"));
+
   // Initialize Hoymiles
   MessageOutput.print(F("Initialize Hoymiles... "));
   delay(5000);
   Hoymiles.init("OpenDTU");
   MessageOutput.println(F("done"));
-  
+
   delay(1000);
   ZeroExport.init();
 
@@ -49,6 +60,8 @@ void loop()
   Network.loop();
   yield();
   PowerMeter.loop();
+  yield();
+  // AsyncWebApi.loop();
   yield();
   ZeroExport.loop();
   yield();

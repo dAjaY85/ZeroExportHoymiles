@@ -1,0 +1,39 @@
+body {
+    background-color: #222222;
+    /* dunkelgraue Hintergrundfarbe */
+    color: #FFFFFF;
+    /* helle Textfarbe */
+}
+
+.nav-tabs li a {
+    color: #FFFFFF;
+    /* helle Textfarbe für Navigationslinks */
+}
+
+.nav-tabs li.active a {
+    background-color: #555555;
+    /* dunkelgraue Hintergrundfarbe für aktiven Navigationslink */
+}
+
+.settings-container {
+    background-color: #333333;
+    /* dunkelgraue Hintergrundfarbe für Einstellungen Container */
+    color: #FFFFFF;
+    /* helle Textfarbe für Einstellungen Container */
+}
+
+input[type="text"],
+input[type="password"],
+select {
+    background-color: #444444;
+    /* dunkelgraue Hintergrundfarbe für Eingabefelder und Auswahllisten */
+    color: #FFFFFF;
+    /* helle Textfarbe für Eingabefelder und Auswahllisten */
+}
+
+button[type="submit"] {
+    background-color: #555555;
+    /* dunkelgraue Hintergrundfarbe für Submit Button */
+    color: #FFFFFF;
+    /* helle Textfarbe für Submit Button */
+}

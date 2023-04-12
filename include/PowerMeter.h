@@ -5,6 +5,7 @@
 #include "Network.h"
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include "Configuration.h"
 
 class PowerMeterClass
 {

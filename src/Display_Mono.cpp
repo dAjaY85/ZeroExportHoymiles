@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "Display_Mono.h"
 #include "imagedata.h"
-#include <Network.h>
+#include <WebServer.h>
 #include <map>
 #include <time.h>
 
@@ -143,9 +143,9 @@ void DisplayMonoClass::loop(float totalPower, float totalYieldDay, float totalYi
     //<=======================
 
     //=====> IP or Date-Time ========
-    if (!(_mExtra % 10) && Network.localIP)
+    if (!(_mExtra % 10) && WebServer.localIP)
     {
-        printText(Network.localIP.toString().c_str(), 3);
+        printText(WebServer.localIP.toString().c_str(), 3);
     }
     else
     {

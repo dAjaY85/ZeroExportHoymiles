@@ -71,12 +71,6 @@ void DisplayClass::loop()
 
     if ((millis() - _lastDisplayUpdate) > period)
     {
-        float totalPower = 0;
-        float totalYieldDay = 0;
-        float totalYieldTotal = 0;
-
-        uint8_t isprod = 0;
-
         if ((_display_type == PCD8544) || (_display_type == SSD1306) || (_display_type == SH1106))
         {
             DisplayMono.loop(PowerMeter.GetPowermeterWatts, Hoymiles.GetHoymilesActualPower(), Hoymiles.GetLimitFromAllInverters(), Hoymiles.GetHoymilesAvailable());

@@ -5,15 +5,11 @@
 #include <espMqttClientAsync.h>
 #include <ArduinoOTA.h>
 #include "defaults.h"
+#include "Configuration.h"
 
 class NetworkClass
 {
 private:
-    void connectToWiFi();
-    void connectToMqtt();
-
-    void WiFiEvent(WiFiEvent_t event);
-
     void onMqttConnect(bool sessionPresent);
     void onMqttDisconnect(espMqttClientTypes::DisconnectReason reason);
 
@@ -25,7 +21,6 @@ private:
     void createMqttClientObject();
 
     espMqttClientAsync *mqttClient = nullptr;
-    bool reconnectMqtt = false;
     uint32_t lastReconnect = 0;
     uint32_t lastTime = 0;
 
@@ -33,11 +28,10 @@ public:
     void init();
     void loop();
 
-    bool isConnected = false;
-    IPAddress localIP;
-
-
+    bool reconnectMqtt = false;
     int MQTT_PowerMeter;
+
+    void connectToMqtt();
 };
 
 extern NetworkClass Network;

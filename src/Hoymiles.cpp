@@ -24,8 +24,8 @@ void HoymilesClass::loop()
 void HoymilesClass::GetHoymilesStatus()
 {
     char url[100] = "http://";
-    strcat(url, DTU_IP);
-    if (Use_DTU == "Ahoy")
+    strcat(url, Configuration.DTU_IP);
+    if (strcmp(Use_DTU, "Ahoy") == 0)
     {
         strcat(url, "/api/index");
         Serial.println(url);
@@ -57,7 +57,7 @@ void HoymilesClass::GetHoymilesStatus()
             }
         }
     }
-    else if (Use_DTU == "OpenDTU")
+    else if (strcmp(Use_DTU, "OpenDTU") == 0)
     {
         strcat(url, "/api/livedata/status");
         Serial.println(url);
@@ -111,12 +111,12 @@ void HoymilesClass::GetHoymilesStatus()
 void HoymilesClass::getHoymilesLimitDTU()
 {
     char url[100] = "http://";
-    strcat(url, DTU_IP);
-    if (Use_DTU == "Ahoy")
+    strcat(url, Configuration.DTU_IP);
+    if (strcmp(Use_DTU, "Ahoy") == 0)
     {
         // GetHoymilesAvailable[i] = GetHoymilesAvailableAhoy(i);
     }
-    else if (Use_DTU == "OpenDTU")
+    else if (strcmp(Use_DTU, "OpenDTU") == 0)
     {
         strcat(url, "/api/limit/status");
         Serial.println(url);
@@ -174,10 +174,10 @@ void HoymilesClass::SetHoymilesLimitDTU(int pLimit)
         NewLimit = ZeroExport.ApplyLimitsToSetpointInverter(i, NewLimit);
         */
 
-        if (Use_DTU == "Ahoy")
+        if (strcmp(Use_DTU, "Ahoy") == 0)
         {
-            snprintf(url, sizeof(url), "http://%s%s", i, "/api/ctrl");
-            sprintf(data, "%s%s%s%d%s", "{\"id\": ", i, ", \"cmd\": \"limit_persistent_relative\", \"val\": ", relLimit, "}");
+            sprintf(url, "%s%d%s", "http://", i, "/api/ctrl");
+            sprintf(data, "%s%d%s%d%s", "{\"id\": ", i, ", \"cmd\": \"limit_persistent_relative\", \"val\": ", relLimit, "}");
 
             Serial.print("RelativeLimit Data: ");
             Serial.println(data);
@@ -194,14 +194,14 @@ void HoymilesClass::SetHoymilesLimitDTU(int pLimit)
                 Serial.println(response);
             }
         }
-        else if (Use_DTU == "OpenDTU")
+        else if (strcmp(Use_DTU, "OpenDTU") == 0)
         {
             sprintf(url, "%s%s%s", "http://", HoyInverterSerial[i], "/api/limit/config");
             sprintf(data, "%s%s%s%d%s", "data={\"serial\":\"", HoyInverterSerial[i], "\", \"limit_type\":1, \"limit_value\":", relLimit, "}");
 
             http.begin(url);
             http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-            http.setAuthorization(DTU_USER, DTU_PASS);
+            http.setAuthorization(Configuration.DTU_USER, Configuration.DTU_PASS);
             int httpCode = http.POST(data);
             if (httpCode > 0)
             {

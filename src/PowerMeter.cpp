@@ -23,15 +23,15 @@ void PowerMeterClass::loop()
     {
         for (int i = 0; i < MeasurementsToAverage; ++i)
         {
-            if (setPowerMeter == "MQTT")
+            if (strcmp(setPowerMeter, "MQTT") == 0)
             {
                 GetPowermeterWatts += Network.MQTT_PowerMeter;
             }
-            else if (setPowerMeter == "Shelly3EM")
+            else if (strcmp(setPowerMeter, "Shelly3EM") == 0)
             {
                 GetPowermeterWatts += GetPowermeterWattsShelly3EM();
             }
-            else if (setPowerMeter == "Tasmota")
+            else if (strcmp(setPowerMeter, "Tasmota") == 0)
             {
                 GetPowermeterWatts += GetPowermeterWattsTasmota();
             }
@@ -50,7 +50,7 @@ int PowerMeterClass::GetPowermeterWattsTasmota()
 {
     HTTPClient http;
     char url[100] = "http://";
-    strcat(url, POWERMETER_IP);
+    strcat(url, Configuration.POWERMETER_IP);
     strcat(url, "/cm?cmnd=status%2010");
     http.begin(url);
 
@@ -86,7 +86,7 @@ int PowerMeterClass::GetPowermeterWattsShelly3EM()
 {
     HTTPClient http;
     char url[100] = "http://";
-    strcat(url, POWERMETER_IP);
+    strcat(url, Configuration.POWERMETER_IP);
     strcat(url, "/status");
     http.begin(url);
 

@@ -1,6 +1,6 @@
 #include "Display_ePaper.h"
 #include "imagedata.h"
-#include <Network.h>
+#include <WebServer.h>
 
 static const uint32_t spiClk = 4000000; // 4 MHz
 
@@ -87,9 +87,9 @@ void DisplayEPaperClass::headlineIP()
     _display->fillScreen(GxEPD_BLACK);
     do
     {
-        if ((Network.isConnected == true) && (Network.localIP > 0))
+        if ((WebServer.isConnected == true) && (WebServer.localIP > 0))
         {
-            snprintf(_fmtText, sizeof(_fmtText), "%s", Network.localIP.toString().c_str());
+            snprintf(_fmtText, sizeof(_fmtText), "%s", WebServer.localIP.toString().c_str());
         }
         else
         {
@@ -190,10 +190,10 @@ void DisplayEPaperClass::actualPowerPaged(float _totalPower, float _totalYieldDa
 void DisplayEPaperClass::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod)
 {
     // check if the IP has changed
-    if (_settedIP != Network.localIP.toString().c_str())
+    if (_settedIP != WebServer.localIP.toString().c_str())
     {
         // save the new IP and call the Headline Funktion to adapt the Headline
-        _settedIP = Network.localIP.toString().c_str();
+        _settedIP = WebServer.localIP.toString().c_str();
         headlineIP();
     }
 
